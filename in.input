@@ -1,0 +1,62 @@
+units real
+atom_style full
+dimension 3
+boundary  p p p
+
+processors 4 3 4 #Total 36 cores
+
+read_data data.30shuinew
+#read_restart data.restart
+
+pair_style reaxff NULL
+pair_coeff * * CHOFeAlNiCuS.ff C H O Fe Al Ni
+mass 1 12.01100 #C
+mass 2 1.00794 #H
+mass 3 15.9994 #O
+#mass 4 14.0067 #N
+#mass 5 28.0855 #Si
+mass 4 55.8450 #Fe
+mass 5 26.9820 #Al
+mass 6 58.6900 #Ni
+#mass 5 4.0026 #He
+
+
+compute reax all pair reaxff
+variable eb   equal c_reax[1]  #bond energy
+variable ea   equal c_reax[2]  #atom energy
+variable elp  equal c_reax[3]  #lone-pair energy
+variable emol equal c_reax[4]  #molecule energy (always 0.0)
+variable ev   equal c_reax[5]  #valence angle energy
+variable epen equal c_reax[6]  #double-bond angle penalty
+variable ecoa equal c_reax[7]  #valence angle conjugation
+variable ehb  equal c_reax[8]  #hydrogen bond
+variable et   equal c_reax[9]  #torsion energy
+variable eco  equal c_reax[10] #conjugataion energy
+variable ew   equal c_reax[11] #van der Waals
+variable ep   equal c_reax[12] #Coulomb
+variable efi  equal c_reax[13] #electric field energy (0.0)
+variable eqeq equal c_reax[14] #charge equilibration
+
+neighbor 2 bin
+neigh_modify every 10 delay 0 check no page 10000000
+timestep 0.25000
+
+velocity all create 300.000000 3184
+
+fix 1 all qeq/reax 1 0.0 10.0 1.0e-6 reaxff
+fix 2 all reaxff/bonds 10000 bondorder
+
+fix 3 all nvt temp 300.0 300.0 100.0  
+
+### Simulation Output ###
+dump 1 all custom 4000 dump.pos.*  id type mol x y z vx vy vz q fx fy fz
+thermo_style custom step temp etotal pe ke v_eb v_ea v_elp v_emol v_ev v_epen v_ecoa v_ehb v_et v_eco v_ew v_ep v_efi v_eqeq lx ly lz pxx pyy pzz pxy pxz pyz cpu
+thermo 1
+
+### Restart Setting ###
+restart 4000 data.restart
+
+### Start Simulation ###
+reset_timestep 0
+run 4000
+
